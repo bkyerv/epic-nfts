@@ -1,0 +1,31 @@
+.Btn {
+  color: white;
+  font-size: large;
+  padding: 1rem 2rem;
+  margin: 1rem 0;
+  background-image: linear-gradient(194deg, #f00097 36%, #fff02e 100%);
+  border: none;
+  border-radius: 1rem;
+}
+
+.Btn:active {
+  transform: translateY(5px);
+  transition: transform 100ms ease-in;
+}
+
+.Btn:disabled {
+  background-color: grey;
+  color: white;
+}
+
+.Stats {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  padding: .2rem 2rem;
+  transform: translateX(-50%);
+  background-color: lightyellow;
+  color: blue;
+  border: none;
+  border-radius: 1rem;
+}

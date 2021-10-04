@@ -202,7 +202,7 @@ export default function Home() {
         href="https://testnets.opensea.io/collection/squarenft-h19hfwk1ex"
         style={{ color: "white" }}
       >
-        "🌊 View Collection on OpenSea"
+        🌊 View Collection on OpenSea
       </a>
     );
   };

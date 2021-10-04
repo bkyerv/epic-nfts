@@ -18,30 +18,50 @@ export default function Home() {
     const { ethereum } = window;
 
     if (!ethereum) {
-      console.log("make sure you ahve a metamas!");
+      setError("Please install Metamask extension");
       return;
-    } else if (ethereum.networkVersion !== "4") {
+    }
+
+    if (ethereum.networkVersion !== "4") {
       console.log("oh no, network is:", ethereum.networkVersion);
       setError("please choose rinkeby netwokr");
-      return
-    } else {
-      setError(null);
-
-      ethereum.on('networkChanged', ()=>ethereum.networkVersion !== '4' ? setError('pleas choose rinkeby network') : setError(null))
-
-      const provider = new ethers.providers.Web3Provider(ethereum);
-      const signer = provider.getSigner();
-      const connectContract = new ethers.Contract(
-        CONTRACT_ADDRESS,
-        myEpicNft.abi,
-        signer
-      );
-      connectContract
-        .getTotal()
-        .then((res) => parseInt(res._hex, 16))
-        .then((res) => setTokenStats(res))
-        .catch(console.log);
     }
+
+    ethereum.on("networkChanged", (id) => {
+      if (id !== "4") {
+        setError("pleas choose rinkeby network");
+        setTokenStats(null);
+        return;
+      } else {
+        setError(null);
+
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        const signer = provider.getSigner();
+        const connectContract = new ethers.Contract(
+          CONTRACT_ADDRESS,
+          myEpicNft.abi,
+          signer
+        );
+        connectContract
+          .getTotal()
+          .then((res) => parseInt(res._hex, 16))
+          .then((res) => setTokenStats(res))
+          .catch(console.log);
+      }
+    });
+
+    const provider = new ethers.providers.Web3Provider(ethereum);
+    const signer = provider.getSigner();
+    const connectContract = new ethers.Contract(
+      CONTRACT_ADDRESS,
+      myEpicNft.abi,
+      signer
+    );
+    connectContract
+      .getTotal()
+      .then((res) => parseInt(res._hex, 16))
+      .then((res) => setTokenStats(res))
+      .catch(console.log);
 
     const accounts = await ethereum.request({ method: "eth_accounts" });
 
@@ -50,7 +70,7 @@ export default function Home() {
       setCurrentAccount(account);
       setupEventListener();
     } else {
-      console.log("no authorized account found");
+      setError("Please connect your wallet");
     }
   };
 
@@ -67,7 +87,7 @@ export default function Home() {
         method: "eth_requestAccounts",
       });
       setCurrentAccount(accounts[0]);
-      console.log("currentAccoutn", currentAccount);
+      setError(null);
       setupEventListener();
     } catch (e) {
       console.error(e);
@@ -143,6 +163,12 @@ export default function Home() {
           let nftTransaction = await connectContract.makeAnEpicNFT();
           console.log("mining... please wait");
           await nftTransaction.wait();
+
+          connectContract
+            .getTotal()
+            .then((res) => parseInt(res._hex, 16))
+            .then((res) => setTokenStats(res))
+            .catch(console.log);
           setIsMinting(false);
           console.log(
             `mined, see the transaction at https://rinkeby.etherscan.io/tx/${nftTransaction.hash}`
@@ -162,7 +188,7 @@ export default function Home() {
         console.log("ethereum object doesn't exist");
       }
     } catch (e) {
-      console.error("yo", e);
+      setIsMinting(false);
     }
   };
 
@@ -229,9 +255,13 @@ export default function Home() {
         My NFT Collection
       </h1>
       {tokenStats && renderStats()}
-      {currentAccount === "" ? renderConnectButton() : renderMintUI()}
+      {currentAccount === ""
+        ? renderConnectButton()
+        : error
+        ? ""
+        : renderMintUI()}
       {error ? renderError() : ""}
-      {renderLink()}
+      {error === null && renderLink()}
     </div>
   );
 }

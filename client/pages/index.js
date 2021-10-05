@@ -10,7 +10,10 @@ export default function Home() {
   const [tokenStats, setTokenStats] = useState(null);
   const [isMinting, setIsMinting] = useState(false);
 
-  useEffect(() => isWalletConnected(), []);
+  useEffect(() => {
+    isWalletConnected();
+    console.log("hello");
+  }, []);
 
   const CONTRACT_ADDRESS = "0x558De85357310eDAc029e8aE4c17DB90701d38e4";
 
@@ -27,10 +30,12 @@ export default function Home() {
       setError("please choose rinkeby netwokr");
     }
 
+
     ethereum.on("networkChanged", (id) => {
       if (id !== "4") {
         setError("pleas choose rinkeby network");
         setTokenStats(null);
+
         return;
       } else {
         setError(null);
@@ -214,6 +219,12 @@ export default function Home() {
           setTokenStats(tokenId.toNumber() + 1);
           console.log(`${CONTRACT_ADDRESS}/${tokenId.toNumber()}`);
         });
+
+        connectedContract
+          .getTotal()
+          .then((res) => parseInt(res._hex, 16))
+          .then((res) => setTokenStats(res))
+          .catch(console.log);
       } else {
         console.log("Ethereum object doesn't exist!");
       }

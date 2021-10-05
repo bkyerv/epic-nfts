@@ -12,7 +12,6 @@ export default function Home() {
 
   useEffect(() => {
     isWalletConnected();
-    console.log("hello");
   }, []);
 
   const CONTRACT_ADDRESS = "0x558De85357310eDAc029e8aE4c17DB90701d38e4";
@@ -25,21 +24,23 @@ export default function Home() {
       return;
     }
 
-    if (ethereum.networkVersion !== "4") {
-      console.log("oh no, network is:", ethereum.networkVersion);
-      setError("please choose rinkeby netwokr");
+    const accounts = await ethereum.request({ method: "eth_accounts" });
+
+    if (accounts.length !== 0) {
+      const account = accounts[0];
+      setCurrentAccount(account);
+      setupEventListener();
+    } else {
+      setError("Please connect your wallet");
+      return;
     }
 
-
-    ethereum.on("networkChanged", (id) => {
-      if (id !== "4") {
-        setError("pleas choose rinkeby network");
-        setTokenStats(null);
-
+    ethereum.on("chainChanged", (id) => {
+      if (id !== "0x4") {
+        setError("Please choose rinkeby network");
         return;
       } else {
         setError(null);
-
         const provider = new ethers.providers.Web3Provider(ethereum);
         const signer = provider.getSigner();
         const connectContract = new ethers.Contract(
@@ -55,6 +56,11 @@ export default function Home() {
       }
     });
 
+    if (ethereum.networkVersion !== "4") {
+      setError("You are on a wrong network. Please choose Rinkeby network");
+      return;
+    }
+
     const provider = new ethers.providers.Web3Provider(ethereum);
     const signer = provider.getSigner();
     const connectContract = new ethers.Contract(
@@ -67,16 +73,6 @@ export default function Home() {
       .then((res) => parseInt(res._hex, 16))
       .then((res) => setTokenStats(res))
       .catch(console.log);
-
-    const accounts = await ethereum.request({ method: "eth_accounts" });
-
-    if (accounts.length !== 0) {
-      const account = accounts[0];
-      setCurrentAccount(account);
-      setupEventListener();
-    } else {
-      setError("Please connect your wallet");
-    }
   };
 
   const connectWallet = async () => {
@@ -92,8 +88,36 @@ export default function Home() {
         method: "eth_requestAccounts",
       });
       setCurrentAccount(accounts[0]);
-      setError(null);
-      setupEventListener();
+
+      ethereum.on("chainChanged", (id) => {
+        if (id !== "0x4") {
+          setError("Please choose rinkeby network");
+          return;
+        } else {
+          setError(null);
+          const provider = new ethers.providers.Web3Provider(ethereum);
+          const signer = provider.getSigner();
+          const connectContract = new ethers.Contract(
+            CONTRACT_ADDRESS,
+            myEpicNft.abi,
+            signer
+          );
+          connectContract
+            .getTotal()
+            .then((res) => parseInt(res._hex, 16))
+            .then((res) => setTokenStats(res))
+            .catch(console.log);
+        }
+      });
+
+      if (ethereum.networkVersion !== "4") {
+        setError(
+          "You are connected but on a wrong network. Please choose Rinkeby network"
+        );
+      } else {
+        setupEventListener();
+        setError(null);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -117,15 +141,49 @@ export default function Home() {
     </button>
   );
 
-  const renderMintUI = () => (
-    <button
-      className={styles.Btn}
-      disabled={error}
-      onClick={askContractToMintNft}
-    >
-      {isMinting ? "Minting..." : "Mint UI"}
-    </button>
-  );
+  const renderConsole = () => {
+    return (
+      <div
+        style={{
+          marginTop: "10px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {tokenStats && (
+          <div
+            style={
+              tokenStats && {
+                color: "black",
+                backgroundColor: "lightyellow",
+                padding: "10px 20px",
+                borderRadius: "10px",
+              }
+            }
+          >
+            {`${tokenStats} out of 14 allowed NFTs are alreadyminted`}
+          </div>
+        )}
+        <a
+          href="https://testnets.opensea.io/collection/squarenft-h19hfwk1ex"
+          style={{ color: "white" }}
+        >
+          🌊 View Collection on OpenSea
+        </a>
+
+        <button
+          className={styles.Btn}
+          disabled={error}
+          onClick={askContractToMintNft}
+        >
+          {isMinting ? "Minting..." : "Mint UI"}
+        </button>
+      </div>
+    );
+  };
 
   const renderError = () => {
     return (
@@ -144,7 +202,7 @@ export default function Home() {
           fontWeight: "bold",
         }}
       >
-        <p>message: {error}</p>
+        <p>{error}</p>
       </div>
     );
   };
@@ -233,24 +291,6 @@ export default function Home() {
     }
   };
 
-  const renderLink = () => {
-    return (
-      <a
-        href="https://testnets.opensea.io/collection/squarenft-h19hfwk1ex"
-        style={{ color: "white" }}
-      >
-        🌊 View Collection on OpenSea
-      </a>
-    );
-  };
-
-  const renderStats = () => {
-    return (
-      <div className={styles.Stats}>
-        <p>{`${tokenStats} out of 14 allowed NFTs are alreadyminted`}</p>
-      </div>
-    );
-  };
   return (
     <div
       style={{
@@ -262,17 +302,13 @@ export default function Home() {
         backgroundColor: "black",
       }}
     >
-      <h1 style={{ color: "white", fontSize: "5rem", marginBottom: "7rem" }}>
+      <h1 style={{ color: "white", fontSize: "5rem", margin: 0 }}>
         My NFT Collection
       </h1>
-      {tokenStats && renderStats()}
-      {currentAccount === ""
-        ? renderConnectButton()
-        : error
-        ? ""
-        : renderMintUI()}
-      {error ? renderError() : ""}
-      {error === null && renderLink()}
+      <div>
+        {error ? renderError() : renderConsole()}
+        {currentAccount[0] ? "" : renderConnectButton()}
+      </div>
     </div>
   );
 }
